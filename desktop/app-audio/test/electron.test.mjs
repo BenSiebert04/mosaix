@@ -33,7 +33,10 @@ test("screen share sound in Electron", { skip: !windows, timeout: 120000 }, () =
     const SILENT = 0.02;
     const clean = (share, what) => {
         assert.ok(share.cleanMedian > 0.95, `${what}: clean sound (${share.cleanMedian})`);
-        assert.ok(share.unclean <= 2, `${what}: at most 2 of ${share.blocks} blocks with noise (${share.unclean})`);
+        assert.ok(
+            share.unclean <= 2,
+            `${what}: at most 2 of ${share.blocks} blocks off (${JSON.stringify(share.off)})`,
+        );
         assert.equal(share.channels, 2, `${what}: stereo`);
         assert.equal(share.player?.underruns, 0, `${what}: the player never ran dry`);
         assert.equal(share.player?.trims, 0, `${what}: the player never dropped sound`);

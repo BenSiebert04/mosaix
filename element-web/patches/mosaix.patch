@@ -564,8 +564,34 @@ index a10ffd8..310e4b0 100644
              canBeReordered: isReorderableSection(props.tag, getCustomSectionData()),
              acceptedRoomKind: getAcceptedRoomKind(props.tag),
          });
+diff --git a/apps/web/src/viewmodels/room-list/RoomListViewModel.test.ts b/apps/web/src/viewmodels/room-list/RoomListViewModel.test.ts
+index 4eba46a..ea2d930 100644
+--- a/apps/web/src/viewmodels/room-list/RoomListViewModel.test.ts
++++ b/apps/web/src/viewmodels/room-list/RoomListViewModel.test.ts
+@@ -1064,6 +1064,21 @@ describe("RoomListViewModel", () => {
+             vi.useRealTimers();
+         });
+ 
++        // [mosaix]
++        it("should dispose the section header view models on dispose", () => {
++            viewModel = new RoomListViewModel({
++                client: matrixClient,
++                spaceStore: SDKContextClass.instance.spaceStore,
++                roomViewStore: SDKContextClass.instance.roomViewStore,
++            });
++            const header = viewModel.getSectionHeaderViewModel(DefaultTagID.Favourite);
++            const disposeSpy = vi.spyOn(header, "dispose");
++
++            viewModel.dispose();
++
++            expect(disposeSpy).toHaveBeenCalled();
++        });
++
+         it("should dispose all room item view models on dispose", () => {
+             viewModel = new RoomListViewModel({
+                 client: matrixClient,
 diff --git a/apps/web/src/viewmodels/room-list/RoomListViewModel.ts b/apps/web/src/viewmodels/room-list/RoomListViewModel.ts
-index cd3159a..2b75396 100644
+index cd3159a..efbed8e 100644
 --- a/apps/web/src/viewmodels/room-list/RoomListViewModel.ts
 +++ b/apps/web/src/viewmodels/room-list/RoomListViewModel.ts
 @@ -46,6 +46,7 @@ import {
@@ -591,3 +617,15 @@ index cd3159a..2b75396 100644
      }
  }
  
+@@ -297,6 +304,11 @@ export class RoomListViewModel
+             }
+             this.roomItemViewModels.clear();
+             this.previewItem?.dispose();
++            // [mosaix] The section headers too: their throttled updates would run on after dispose
++            for (const viewModel of this.roomSectionHeaderViewModels.values()) {
++                viewModel.dispose();
++            }
++            this.roomSectionHeaderViewModels.clear();
+         });
+ 
+         // A room may already be open when the list is created
