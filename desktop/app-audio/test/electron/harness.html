@@ -40,7 +40,7 @@
                     for (const v of x) power += v * v;
                     power /= x.length;
                     const tonePower = levels.reduce((p, l) => p + (l * l) / 2, 0);
-                    blocks.push({ levels, clean: power > 1e-6 ? tonePower / power : 1 });
+                    blocks.push({ levels, power, clean: power > 1e-6 ? tonePower / power : 1 });
                 }
                 const median = (values) => values.sort((a, b) => a - b)[values.length >> 1];
                 const round = (v) => Math.round(v * 1000) / 1000;
@@ -48,6 +48,10 @@
                 frequencies.forEach((f, i) => (result[`t${f}`] = round(median(blocks.map((b) => b.levels[i])))));
                 result.cleanMedian = round(median(blocks.map((b) => b.clean)));
                 result.unclean = blocks.filter((b) => b.clean < 0.9).length;
+                // Which blocks are off, and what they contain (for diagnosis)
+                result.off = blocks
+                    .map((b, i) => ({ i, clean: round(b.clean), levels: b.levels.map(round), rms: round(Math.sqrt(b.power)) }))
+                    .filter((b) => b.clean < 0.9);
                 return result;
             }
 
