@@ -21,6 +21,7 @@ node e2e/popout.e2e.mjs        # Test 1d: Pop-outs (eigenes Fenster, läuft im H
 node scripts/prepare-webapp.mjs --from <Element-Web-Build>  # Webapp wie in der Desktop-App (docs/UPDATING.md)
 node e2e/element-web.e2e.mjs   # Test 2: echte Element-Web-App mit unserem Widget
 node e2e/private-voice.e2e.mjs # Test 3: Private Voice in der echten Element-Web-App
+node e2e/volume-cycles.e2e.mjs # Test 4: Lautstärke/stumm über die Zeit, gemessen am Abgespielten
 e2e/stop.sh
 ```
 
@@ -67,3 +68,18 @@ Serverseite – in die Account-Daten und prüft die gerenderte Oberfläche:
 6. Konfiguration entfernt: normale Ansicht zurück, Verlauf erhalten.
 
 Screenshots: `e2e/results/private-voice-*.png`.
+
+### Mit der echten Desktop-App
+
+`element-web-volume.e2e.mjs` und `volume-cycles.e2e.mjs` können Ben in der
+echten Mosaix-Desktop-App laufen lassen (Element-Desktop-Checkout mit
+`node scripts/prepare-desktop.mjs`, gebaut mit `tsc`, Web-App unter
+`apps/desktop/webapp`, `config.json` auf `http://localhost:8008`). Die App
+als normaler Benutzer (nicht root, wegen der Sandbox) starten:
+
+```sh
+electron . --profile-dir /tmp/mosaix-ben --remote-debugging-port=9333 \
+  --use-fake-ui-for-media-stream --use-fake-device-for-media-stream \
+  --password-store=basic --storage-mode=force-plaintext
+BEN_CDP=http://localhost:9333 node e2e/volume-cycles.e2e.mjs
+```

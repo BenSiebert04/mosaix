@@ -14,8 +14,10 @@ import {
 import {
   type Participant,
   type RemoteAudioTrack,
+  type RemoteParticipant,
   type Room,
   Track,
+  TrackEvent,
 } from "livekit-client";
 import { type ReactNode } from "react";
 import { useTracks } from "@livekit/components-react";
@@ -31,6 +33,7 @@ import {
 } from "../utils/test";
 import { logger as rootLogger } from "matrix-js-sdk/lib/logger";
 import { initializeWidget } from "../widget";
+import { setPlaybackVolume } from "../custom-layout/playbackVolume";
 initializeWidget();
 export const TestAudioContextConstructor = vi.fn(
   class {
@@ -338,4 +341,23 @@ it("should setup audioContext gain and pan", () => {
 
   expect(testAudioContext.gain.gain.value).toEqual(0.1);
   expect(testAudioContext.pan.pan.value).toEqual(1);
+});
+
+// [element-custom]
+it("applies a muted volume again whenever an element is attached", async () => {
+  renderTestComponent([{ userId: "@bob", deviceId: "DEV0" }], ["@bob:DEV0"]);
+  const ref = tracks[0];
+  const audioTrack = ref.publication.track! as RemoteAudioTrack;
+  setPlaybackVolume(ref.participant as RemoteParticipant, 0);
+  vi.mocked(audioTrack.setVolume).mockClear();
+  // LiveKit emits the event before it builds the new audio graph, and only
+  // takes over volumes other than 0 to it
+  const [event, onAttached] = vi
+    .mocked(audioTrack.on)
+    .mock.calls.find(([e]) => e === TrackEvent.ElementAttached)!;
+  expect(event).toBe(TrackEvent.ElementAttached);
+  (onAttached as () => void)();
+  expect(audioTrack.setVolume).not.toHaveBeenCalled();
+  await Promise.resolve();
+  expect(audioTrack.setVolume).toHaveBeenCalledWith(0);
 });
