@@ -69,6 +69,14 @@ function captureTarget(sourceId, ownPid, processOfWindow) {
     return null;
 }
 
+let worklet;
+
+/** The code of the player's AudioWorklet. */
+function workletCode() {
+    worklet ??= fs.readFileSync(path.join(__dirname, "player-worklet.js"), "utf8");
+    return worklet;
+}
+
 let active = null;
 
 /** Stops the running capture, if any. */
@@ -138,16 +146,18 @@ async function start({ electron, sourceId, ownPid, requestFrame }) {
             preload: path.join(__dirname, "player-preload.cjs"),
             contextIsolation: true,
             nodeIntegration: false,
-            // The preload reads the worklet from disk
-            sandbox: false,
+            // Element Desktop sandboxes every renderer anyway (app.enableSandbox)
+            sandbox: true,
             backgroundThrottling: false,
             autoplayPolicy: "no-user-gesture-required",
         },
     });
     await player.loadFile(path.join(__dirname, "player.html"));
 
+    // The player is sandboxed like every renderer of Element Desktop, so it
+    // gets the worklet's code from here
     const { port1, port2 } = new electron.MessageChannelMain();
-    player.webContents.postMessage("mosaix-app-audio-port", null, [port2]);
+    player.webContents.postMessage("mosaix-app-audio-port", workletCode(), [port2]);
     port1.start();
 
     let capture;

@@ -62,6 +62,10 @@ Electron kann einer Bildschirmfreigabe nur den kompletten Systemton
   abgespielt (AudioWorklet), und genau dieses Fenster gibt Electron als
   Tonquelle der Freigabe an (`audio: webFrameMain`). Während es aufgenommen
   wird, ist es lokal stumm.
+- **Sandbox:** Element Desktop sandboxt jeden Renderer (`app.enableSandbox()`),
+  auch das Player-Fenster. Dessen Preload darf daher keine Dateien lesen; den
+  Code des Worklets schickt der Hauptprozess zusammen mit dem MessagePort.
+  Der Windows-Test läuft ebenfalls mit Sandbox.
 - **Jitter-Puffer** (`lib/player-worklet.js`): Die Aufnahme kommt über den
   Hauptprozess, dessen Ereignisschleife kurz hängen kann, und ihr Takt ist
   nicht der des Players. Start nach 100 ms Puffer; über 160 ms wird pro

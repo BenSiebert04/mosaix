@@ -555,6 +555,8 @@ export const mockTrack = (
         setVolume: vi.fn(),
         // [element-custom]
         getVolume: vi.fn().mockReturnValue(1),
+        on: vi.fn(),
+        off: vi.fn(),
       },
     },
     track: {},

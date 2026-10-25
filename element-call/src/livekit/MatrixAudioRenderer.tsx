@@ -7,7 +7,7 @@ Please see LICENSE in the repository root for full details.
 
 import { getTrackReferenceId } from "@livekit/components-core";
 import { type Room as LivekitRoom } from "livekit-client";
-import { type RemoteAudioTrack, Track } from "livekit-client";
+import { type RemoteAudioTrack, Track, TrackEvent } from "livekit-client";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   useTracks,
@@ -255,12 +255,36 @@ function AudioTrackWithAudioNodes({
     // [element-custom] Now the volume may go above 100 %
     const requested = requestedPlaybackVolume(
       trackRef.participant.identity,
-      trackRef.source,
+      trackRef.publication.source,
     );
     if (useContext && requested !== undefined) track.setVolume(requested);
     setTrackReady(true);
     controls.setPlaybackStarted();
   }, [audioContext, audioNodes, setTrackReady, trackReady, trackRef]);
+
+  // [element-custom] LiveKit takes a track's volume over to a newly attached
+  // element or rebuilt audio graph only if it isn't 0 ("Mute for me" would be
+  // lost). So apply the requested volume again whenever that happens.
+  useEffect(() => {
+    if (!trackRef || !trackReady) return;
+    const track = trackRef.publication.track as RemoteAudioTrack;
+    const apply = (): void => {
+      const requested = requestedPlaybackVolume(
+        trackRef.participant.identity,
+        trackRef.publication.source,
+      );
+      if (requested === undefined) return;
+      const useContext = audioContext && audioNodes.gain && audioNodes.pan;
+      track.setVolume(useContext ? requested : Math.min(requested, 1));
+    };
+    // The event comes before LiveKit has built the new audio graph
+    const applyAfterAttach = (): void => queueMicrotask(apply);
+    track.on(TrackEvent.ElementAttached, applyAfterAttach);
+    apply();
+    return (): void => {
+      track.off(TrackEvent.ElementAttached, applyAfterAttach);
+    };
+  }, [audioContext, audioNodes, trackReady, trackRef]);
 
   return (
     trackReady && <AudioTrack trackRef={trackRef} muted={muted} {...props} />
