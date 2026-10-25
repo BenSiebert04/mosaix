@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 // Electron test of lib/index.cjs on Windows, wired up like Element Desktop's
-// display media handler: two separate applications play 440 Hz and 880 Hz,
+// display media handler (with every renderer sandboxed, as there): two separate applications play 440 Hz and 880 Hz,
 // this app itself plays 660 Hz (standing for the call). Shares a window, then
 // the screen, and prints what the screen share's sound contained.
 
@@ -17,6 +17,8 @@ const appAudio = require("../../lib/index.cjs");
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
+// As in Element Desktop: every renderer is sandboxed, the player included
+app.enableSandbox();
 
 let choose = null;
 
