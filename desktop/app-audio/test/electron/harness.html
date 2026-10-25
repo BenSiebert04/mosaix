@@ -82,12 +82,21 @@
                 }
                 const ctx = new AudioContext({ sampleRate: 48000 });
                 const source = ctx.createMediaStreamSource(new MediaStream([track]));
-                const recorder = ctx.createScriptProcessor(4096, 1, 1);
+                // Recorded on the audio thread: a ScriptProcessorNode runs on the
+                // main thread and loses sound when the page is busy
+                const recorderCode = `
+                    registerProcessor("recorder", class extends AudioWorkletProcessor {
+                        process(inputs) {
+                            const channel = inputs[0][0];
+                            if (channel) this.port.postMessage(channel.slice());
+                            return true;
+                        }
+                    });`;
+                await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([recorderCode], { type: "text/javascript" })));
+                const recorder = new AudioWorkletNode(ctx, "recorder", { numberOfOutputs: 0 });
                 const chunks = [];
-                recorder.onaudioprocess = (e) => chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
-                const silent = ctx.createGain();
-                silent.gain.value = 0;
-                source.connect(recorder).connect(silent).connect(ctx.destination);
+                recorder.port.onmessage = (e) => chunks.push(e.data);
+                source.connect(recorder);
                 await sleep(5000);
                 stream.getTracks().forEach((t) => t.stop());
                 await ctx.close();
